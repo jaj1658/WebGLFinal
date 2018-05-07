@@ -1,0 +1,134 @@
+<script src=lib2.js></script>
+
+<body bgcolor=black text=white link=white alink=white vlink=white>
+<center>
+<canvas id='canvas1' width=600 height=600></canvas>
+</center>
+</body>
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.);
+      vPos = aPos;
+   }
+</script>
+
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+uniform float uTime;
+varying vec3 vPos; 
+vec4 spheres[4];
+
+
+vec2 rayTracer(vec3 V, vec4 S, vec3 W) {
+ V -= S.xyz;
+ float b = 2.*dot(W , V);
+ float c = dot(V, V) - S.w * S.w;
+ float discrim = b*b - 4.*c;
+ if(discrim < 0.) {
+        float t = sqrt(b*b - c);
+     	if(-b - t > 0.) {
+     		t = -b - t;
+     	}
+     	else {
+     		t = -b + t;
+     	}
+     return vec2( -b - discrim, -b + discrim) / 2.;
+   }
+   return vec2(100., 100.);
+}
+
+vec3 colz[4];
+
+
+vec3 phongshader(vec3 N, vec3 E, vec3 A, vec3 D, vec4 S, vec3 L) {
+   vec3 c = A;                               
+   float d = max(0., dot(N, L));   
+   vec3 R = 2. * dot(N, L) * N - L;    
+   float s = pow(max(0., dot(E, R)), S.a);    
+   c =  c + (d * D + s * S.rgb * .1*S.a);
+   return c;
+}
+void main() {
+   vec3 L = normalize(vec3(1.,-sin(uTime),5.0));
+   vec3 c = vec3(.01, .01, .04);
+   float f = 100.0;
+   for(int i = 0; i < 4; i++) {
+    vec4 newsphere = vec4(
+        cos(uTime + float(i)), 
+        sin(uTime + float(i)),
+        -0.27,
+        -0.25);
+    spheres[i]=newsphere;
+   } 
+   vec3 V = vec3(vPos.x, vPos.y,f);
+   vec3 W = normalize(vec3(vPos.x, vPos.y, -1.*f));
+   vec3 E  = -W;
+   float distance = 1000.;
+   for(int i = 0; i < 4; i++) {
+        vec4 S = spheres[i];
+        vec2 t = rayTracer(V, S, W);
+        if(t.x < distance) {
+        distance = t.x;
+        vec3 P = V + t.x * W;
+        vec3 N = normalize(P - S.xyz);
+        c = phongshader(N, E, vec3(.01, .01, .01), vec3(.05, .5, .05), vec4(0.,.5,.5,10.), L);
+   }
+}
+   gl_FragColor = vec4(sqrt(c), 1.0); 
+   
+}
+
+</script>
+
+<script id='my_title' type='text/html'>
+Homework 3
+</script>
+
+<script>
+var vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#b0b0b0>' + my_title.innerHTML + '</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+var i, text = fs.split('\n'), cols = 0;
+for (i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = cols;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+
+var startTime = Date.now();
+
+function animate(gl) {
+   let time = (Date.now() - startTime) / 1000;
+   setUniform('1f', 'uTime', time);
+}
+
+gl_start(canvas1, vs, fs);
+</script>
+
+
+
