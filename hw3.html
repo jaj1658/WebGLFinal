@@ -19,7 +19,7 @@
 <script id='my_fragment_shader' type='x-shader/x-fragment'>
 uniform float uTime;
 varying vec3 vPos; 
-vec4 spheres[4];
+vec4 spheres[8];
 
 
 vec2 rayTracer(vec3 V, vec4 S, vec3 W) {
@@ -55,7 +55,7 @@ void main() {
    vec3 L = normalize(vec3(1.,-sin(uTime),5.0));
    vec3 c = vec3(.01, .01, .04);
    float f = 100.0;
-   for(int i = 0; i < 4; i++) {
+   for(int i = 0; i < 8; i++) {
     vec4 newsphere = vec4(
         cos(uTime + float(i)), 
         sin(uTime + float(i)),
@@ -67,7 +67,7 @@ void main() {
    vec3 W = normalize(vec3(vPos.x, vPos.y, -1.*f));
    vec3 E  = -W;
    float distance = 1000.;
-   for(int i = 0; i < 4; i++) {
+   for(int i = 0; i < 8; i++) {
         vec4 S = spheres[i];
         vec2 t = rayTracer(V, S, W);
         if(t.x < distance) {
