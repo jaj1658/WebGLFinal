@@ -1,0 +1,269 @@
+<script src=lib2.js></script>
+
+<body bgcolor=black text=white link=white alink=white vlink=white>
+<center>
+<canvas id='canvas1' width=400 height=400></canvas>
+</center>
+</body>
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.);
+      vPos = aPos;
+   }
+</script>
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+uniform float uTime;
+varying vec3  vPos;
+uniform mat4  uMat;
+
+uniform mat4 identity;
+uniform mat4 translate;
+uniform mat4 rotatex;
+uniform mat4 rotatey;
+uniform mat4 rotatez;
+uniform mat4 scale;
+
+
+uniform vec4 uS[4];
+
+vec4 raySph(vec3 V,vec3 W,vec4 S) {// TRACE RAY
+   vec3  P = S.xyz - V;            // TO SPHERE
+   float b = dot(W, P);
+   float d = b * b - dot(P, P) + S.w * S.w;
+   float t = b - sqrt(d);
+   return vec4(V + t*W, step(0.,d)*step(0.,t));
+}
+
+void main() {
+   float f = 2.;                // FOCAL LENGTH
+   vec3 color = vec3(0.,0.,.1); // BACKGD COLOR
+   vec3 V = vec3(0., 0., f);    // CREATE RAY
+   vec3 W = normalize(vec3(vPos.xy, -f));
+   float z = -100.;
+
+
+   for (int n = 0; n < 4; n++)
+   {
+     //from the notes
+     vec4 S = uS[n]; // DEFINE SPHERE
+     vec3 C = S.xyz;     // SEPARATE CENTER
+     float r = S.w;                 // AND RADIUS
+     C = (uMat * vec4(C, 1.)).xyz;  // APPLY uMat
+
+
+     C = (identity * vec4(C, 1.)).xyz;
+
+     C = (translate * vec4(C, 1.)).xyz;
+     
+     // C = (rotatex * vec4(C, 1.)).xyz;
+     
+     // C = (rotatey * vec4(C, 1.)).xyz;
+     
+     C = (rotatez * vec4(C, 1.)).xyz;
+     
+     r = (scale * vec4(C, 1.)).r;
+
+     //RAY TRACING FROM NOTES
+     vec4 P = raySph(V,W,vec4(C,r));// SHOOT RAY:
+     if (P.w > 0. && P.z > z) {                // IF IT HITS
+        z = P.z;
+        vec3 N = (P.xyz - C) / r;   // DO SHADING
+        vec3 L = normalize(vec3(1.,1.,1.));
+        float c = .1 + .9 * max(0., dot(N, L));
+        color = vec3(c, c*c, c*c*c);
+      }
+    }
+   gl_FragColor = vec4(sqrt(color), 1.0);
+}</script>
+
+<script id='instructions' type='text/html'><font color=#b0b0b0>
+<b>Description</b>
+<p>
+ I implement the matrix primitives identity, translation, rotation about x,y, and z, and scale.<br>
+ and then used that to play with four spheres<br>
+ <br>
+  <br>
+     i completed the extra credit and showed that everything works together. I only turned some of it on
+  <br>
+    i also transformed different sphere centers using the matrix mult
+</p>
+</script>
+
+<script>
+var vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#b0b0b0>Assignment 4</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'<td valign=top><font size=5>' + instructions.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+var i, text = fs.split('\n'), cols = 0;
+for (i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = cols;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+
+var startTime = Date.now();
+
+function animate(gl) {
+   let time = (Date.now() - startTime) / 1000;
+   setUniform('1f', 'uTime', time);
+
+   setUniform('4fv', 'uS', [-.4,-.3,0,.1,
+                             .3,-.4,0,.1,
+                            -.4, .3,0,.1,
+                             .3, .4,0,.1,
+                           ]);
+
+
+   let c = Math.cos(time * 1.);
+   let s = Math.sin(time * 1.);
+
+
+   let x = Math.cos(time * 2.);
+   let y = Math.cos(time * 2.);
+   let z = Math.cos(time * 2.);
+
+   let sz = Math.cos(time * 2.);
+   let sy = Math.cos(time * 2.);
+   let sx = Math.cos(time * 2.);
+
+
+    setUniform('Matrix4fv', 'uMat', false, [1, 0, 0, 0,
+                                            0, 1,0, 0,
+                                            0,0, 1, 0,
+                                            0, 0, 0, 1,
+                                            ]);
+    setUniform('Matrix4fv', 'identity', false, [ 1, 0, 0, 0,
+                                                 0, 1, 0, 0,
+                                                 0, 0, 1, 0,
+                                                 0, 0, 0, 1,
+                                               ]);
+    setUniform('Matrix4fv', 'translate', false, [ 1, 0, 0, 0,
+                                                0, 1, 0, 0,
+                                                0, 0, 1, 0,
+                                                x, y, z, 1,
+                                              ]);
+    setUniform('Matrix4fv', 'rotatex', false, [ 1, 0, 0, 0,
+                                                0, c, s, 0,
+                                                0, -s, c, 0,
+                                                0, 0, 0, 1,
+                                              ]);
+    setUniform('Matrix4fv', 'rotatey', false, [ c, 0, -s, 0,
+                                                0, 1, 0, 0,
+                                                s, 0, c, 0,
+                                                0, 0, 0, 1,
+                                              ]);
+    setUniform('Matrix4fv', 'rotatez', false, [ c, s, 0, 0,
+                                                -s, c, 0, 0,
+                                                0, 0, 1, 0,
+                                                0, 0, 0, 1,
+                                              ]);
+    setUniform('Matrix4fv', 'scale', false, [   sx, 0, 0, 0,
+                                                0, sy, 0, 0,
+                                                0, 0, sz, 0,
+                                                0, 0, 0, 1,
+                                              ]);
+}
+
+
+
+// var samplematrix = [
+//    [1,2,3,4],
+//    [5,6,7,8],
+//    [9,0,1,2],
+//    [3,4,5,6],
+// ];
+
+// var identity = [
+//    [1,0,0,0],
+//    [0,1,0,0],
+//    [0,0,1,0],
+//    [0,0,0,1],
+// ];
+
+
+// function identitit(x){
+//    return mmult(x,identity);
+// }
+
+// function mmult(x, y){
+//    var answer = [
+//    [1,0,0,0],
+//    [0,1,0,0],
+//    [0,0,1,0],
+//    [0,0,0,1],
+//    ];
+//    for(i = 0; i < 4; i++){
+//       for(j = 0; j < 4; j++){
+//          var temp = 0;
+//          for(k = 0; k < 4; k++){
+//             temp += x[i][k] * y[k][j];
+//          }
+//          answer[i][j] = temp;
+//       }
+//    }
+//    return answer;
+// }
+
+// function translate(x,y,z,sphere){
+//    var matrix = identity;
+//    matrix[0][3] = x;
+//    matrix[1][3] = y;
+//    matrix[2][3] = z;
+//    // console.log(matrix);
+//    // console.log(sphere);
+//    return mmult(matrix,sphere);
+// }
+
+// function rotatex(theta,x){
+//    var matrix = identity;
+//    matrix[1][1] = cos(theta);
+//    matrix[1][2] = -sin(theta);
+//    matrix[2][1] = sin(theta);
+//    matrix[2][2] = cos(theta);
+//    return mmult(x,matrix);
+// }
+
+// function scale(x,y,z,sphere){
+//    var matrix = identity;
+//    matrix[0][0] = x;
+//    matrix[1][1] = y;
+//    matrix[2][2] = z;
+//    return mmult(x,matrix);
+// }
+
+// console.log(translate(2,3,4,samplematrix));
+
+// console.log(mmult(matrix,identity));
+// console.log(identitit(matrix));
+
+
+
+
+gl_start(canvas1, vs, fs);
+</script>

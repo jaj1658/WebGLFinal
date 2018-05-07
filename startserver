@@ -1,0 +1,2 @@
+killall python
+python -m http.server 
